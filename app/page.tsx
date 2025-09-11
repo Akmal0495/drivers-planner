@@ -13,8 +13,8 @@ export default function Page() {
       id: 1,
       driver: "Иванов",
       route: "Душанбе → Хорог",
-      start: new Date(2025, 7, 11, 10, 0),
-      end: new Date(2025, 7, 11, 14, 0),
+      start: new Date(2025, 8, 11, 10, 0), // сентябрь (месяцы в JS с 0)
+      end: new Date(2025, 8, 11, 14, 0),
       status: "Запланировано",
     },
   ]);
@@ -22,44 +22,57 @@ export default function Page() {
   const [newTrip, setNewTrip] = useState({
     driver: "",
     route: "",
-    date: "",
+    startDate: "",
     startTime: "",
     endTime: "",
     status: "Запланировано",
   });
 
   const addTrip = () => {
-    if (!newTrip.driver || !newTrip.route || !newTrip.date || !newTrip.startTime || !newTrip.endTime) {
-      alert("Заполните все поля!");
+    if (!newTrip.driver || !newTrip.route || !newTrip.startDate || !newTrip.startTime || !newTrip.endTime) {
+      alert("Заполни все поля!");
       return;
     }
 
-    const start = new Date(`${newTrip.date}T${newTrip.startTime}`);
-    const end = new Date(`${newTrip.date}T${newTrip.endTime}`);
+    const start = new Date(`${newTrip.startDate}T${newTrip.startTime}`);
+    const end = new Date(`${newTrip.startDate}T${newTrip.endTime}`);
 
     setTrips([
       ...trips,
-      { ...newTrip, id: trips.length + 1, start, end },
+      {
+        id: trips.length + 1,
+        driver: newTrip.driver,
+        route: newTrip.route,
+        start,
+        end,
+        status: newTrip.status,
+      },
     ]);
 
-    setNewTrip({ driver: "", route: "", date: "", startTime: "", endTime: "", status: "Запланировано" });
+    setNewTrip({
+      driver: "",
+      route: "",
+      startDate: "",
+      startTime: "",
+      endTime: "",
+      status: "Запланировано",
+    });
+  };
+
+  const eventStyleGetter = (event: any) => {
+    let backgroundColor = "#3174ad"; // по умолчанию
+    if (event.status === "В пути") backgroundColor = "orange";
+    if (event.status === "Завершено") backgroundColor = "green";
+    if (event.status === "Отменено") backgroundColor = "red";
+    return { style: { backgroundColor } };
   };
 
   return (
-    <div className="pb-20 p-4 max-w-4xl mx-auto">
-      {/* Заголовок */}
-      <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-center mb-4">
-        Планировщик поездок
-      </h1>
+    <div className="p-4 max-w-2xl mx-auto">
+      <h1 className="text-xl font-bold mb-4">Планировщик поездок</h1>
 
-      {/* Форма */}
-      <form
-        className="flex flex-col gap-3 bg-white shadow-md p-4 rounded-lg mb-6"
-        onSubmit={(e) => {
-          e.preventDefault();
-          addTrip();
-        }}
-      >
+      {/* форма */}
+      <div className="grid gap-2 mb-4">
         <input
           type="text"
           placeholder="Водитель"
@@ -74,60 +87,44 @@ export default function Page() {
           onChange={(e) => setNewTrip({ ...newTrip, route: e.target.value })}
           className="border rounded p-2"
         />
-        {/* Отдельно дата + время */}
         <input
           type="date"
-          value={newTrip.date}
-          onChange={(e) => setNewTrip({ ...newTrip, date: e.target.value })}
+          value={newTrip.startDate}
+          onChange={(e) => setNewTrip({ ...newTrip, startDate: e.target.value })}
           className="border rounded p-2"
         />
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <input
             type="time"
             value={newTrip.startTime}
             onChange={(e) => setNewTrip({ ...newTrip, startTime: e.target.value })}
-            className="border rounded p-2 flex-1"
+            className="border rounded p-2"
           />
           <input
             type="time"
             value={newTrip.endTime}
             onChange={(e) => setNewTrip({ ...newTrip, endTime: e.target.value })}
-            className="border rounded p-2 flex-1"
+            className="border rounded p-2"
           />
         </div>
-
         <button
-          type="submit"
-          className="bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 active:scale-95 transition"
+          onClick={addTrip}
+          className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
         >
           Добавить поездку
         </button>
-      </form>
-
-      {/* Календарь */}
-      <div className="overflow-x-auto">
-        <Calendar
-          localizer={localizer}
-          events={trips}
-          startAccessor="start"
-          endAccessor="end"
-          style={{ height: 500 }}
-          className="rounded-lg shadow-md"
-        />
       </div>
 
-      {/* Нижняя панель */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white shadow-inner border-t flex justify-around py-2">
-        <button className="flex flex-col items-center text-blue-600">
-          📅 <span className="text-xs">Календарь</span>
-        </button>
-        <button className="flex flex-col items-center text-gray-700">
-          ➕ <span className="text-xs">Добавить</span>
-        </button>
-        <button className="flex flex-col items-center text-gray-700">
-          ⚙️ <span className="text-xs">Настройки</span>
-        </button>
-      </nav>
+      {/* календарь */}
+      <Calendar
+        localizer={localizer}
+        events={trips}
+        startAccessor="start"
+        endAccessor="end"
+        style={{ height: 500 }}
+        eventPropGetter={eventStyleGetter}
+        views={["month", "week", "day"]}
+      />
     </div>
   );
 }
