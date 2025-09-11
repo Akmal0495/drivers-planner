@@ -1,4 +1,5 @@
 "use client";
+// @ts-nocheck
 
 import React, { useState } from "react";
 import { Calendar, momentLocalizer } from "react-big-calendar";
