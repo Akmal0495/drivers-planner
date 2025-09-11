@@ -3,12 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-  "dev": "next dev --turbopack",
-  "build": "next build",
-  "start": "next start",
-  "lint": "eslint"
-},
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
   "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
     "moment": "^2.30.1",
     "next": "^15.2.0",
     "react": "18.3.1",
