@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Calendar, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "../lib/supabaseClient";
 
 const localizer = momentLocalizer(moment);
 
@@ -12,102 +12,94 @@ type Trip = {
   id: number;
   driver: string;
   route: string;
-  start: string | Date;
-  end: string | Date;
-  status: "Запланировано" | "В пути" | "Завершено" | "Отменено";
+  start: Date;
+  end: Date;
+  status: string;
 };
 
 export default function Page() {
   const [trips, setTrips] = useState<Trip[]>([]);
-
   const [newTrip, setNewTrip] = useState({
     driver: "",
     route: "",
     startDate: "",
     startTime: "",
-    endDate: "",
     endTime: "",
-    status: "Запланировано" as Trip["status"],
+    status: "Запланировано",
   });
 
-  // 1) читаем из БД при загрузке
+  // Загружаем поездки из Supabase
   useEffect(() => {
     const loadTrips = async () => {
-      const { data, error } = await supabase
-        .from("trips")
-        .select("*")
-        .order("start", { ascending: true });
-
+      const { data, error } = await supabase.from("trips").select("*");
       if (error) {
-        console.error("❌ Supabase select error:", error.message);
-        return;
-      }
-
-      // Supabase возвращает строки в ISO; приводим к Date для календаря
-      const normalized =
-        data?.map((t) => ({
-          ...t,
+        console.error("❌ Ошибка Supabase:", error.message);
+      } else if (data) {
+        const formatted = data.map((t: any) => ({
+          id: t.id,
+          driver: t.driver,
+          route: t.route,
           start: new Date(t.start),
           end: new Date(t.end),
-        })) ?? [];
-
-      setTrips(normalized as Trip[]);
+          status: t.status,
+        }));
+        setTrips(formatted);
+      }
     };
 
     loadTrips();
   }, []);
 
-  // 2) добавляем поездку в БД
+  // Добавление новой поездки
   const addTrip = async () => {
-    const { driver, route, startDate, startTime, endDate, endTime, status } = newTrip;
-
-    if (!driver || !route || !startDate || !startTime || !endDate || !endTime) {
-      alert("Заполни все поля (включая обе даты и время)!");
+    if (!newTrip.driver || !newTrip.route || !newTrip.startDate || !newTrip.startTime || !newTrip.endTime) {
+      alert("Заполни все поля!");
       return;
     }
 
-    const start = new Date(`${startDate}T${startTime}`);
-    const end = new Date(`${endDate}T${endTime}`);
+    const start = new Date(`${newTrip.startDate}T${newTrip.startTime}`);
+    const end = new Date(`${newTrip.startDate}T${newTrip.endTime}`);
 
     const { data, error } = await supabase
       .from("trips")
       .insert([
         {
-          driver,
-          route,
-          start: start.toISOString(),
-          end: end.toISOString(),
-          status,
+          driver: newTrip.driver,
+          route: newTrip.route,
+          start,
+          end,
+          status: newTrip.status,
         },
       ])
-      .select()
-      .single();
+      .select();
 
     if (error) {
-      console.error("❌ Supabase insert error:", error.message);
-      alert("Не удалось добавить поездку");
-      return;
+      console.error("❌ Ошибка сохранения:", error.message);
+    } else if (data) {
+      setTrips([
+        ...trips,
+        {
+          id: data[0].id,
+          driver: data[0].driver,
+          route: data[0].route,
+          start: new Date(data[0].start),
+          end: new Date(data[0].end),
+          status: data[0].status,
+        },
+      ]);
+      setNewTrip({
+        driver: "",
+        route: "",
+        startDate: "",
+        startTime: "",
+        endTime: "",
+        status: "Запланировано",
+      });
     }
-
-    // добавляем в локальный стейт, чтобы сразу увидеть в UI
-    setTrips((prev) => [
-      ...prev,
-      { ...(data as any), start, end } as Trip,
-    ]);
-
-    // очистить форму
-    setNewTrip({
-      driver: "",
-      route: "",
-      startDate: "",
-      startTime: "",
-      endDate: "",
-      endTime: "",
-      status: "Запланировано",
-    });
   };
 
-  const eventStyleGetter = (event: Trip) => {
+  // Цвета для статусов
+  const eventStyleGetter = (event: any) => {
     let backgroundColor = "#3174ad";
     if (event.status === "В пути") backgroundColor = "orange";
     if (event.status === "Завершено") backgroundColor = "green";
@@ -119,7 +111,7 @@ export default function Page() {
     <div className="p-4 max-w-2xl mx-auto">
       <h1 className="text-xl font-bold mb-4">Планировщик поездок</h1>
 
-      {/* Форма */}
+      {/* форма */}
       <div className="grid gap-2 mb-4">
         <input
           type="text"
@@ -135,29 +127,17 @@ export default function Page() {
           onChange={(e) => setNewTrip({ ...newTrip, route: e.target.value })}
           className="border rounded p-2"
         />
-
-        {/* Дата/время отправления */}
+        <input
+          type="date"
+          value={newTrip.startDate}
+          onChange={(e) => setNewTrip({ ...newTrip, startDate: e.target.value })}
+          className="border rounded p-2"
+        />
         <div className="grid grid-cols-2 gap-2">
-          <input
-            type="date"
-            value={newTrip.startDate}
-            onChange={(e) => setNewTrip({ ...newTrip, startDate: e.target.value })}
-            className="border rounded p-2"
-          />
           <input
             type="time"
             value={newTrip.startTime}
             onChange={(e) => setNewTrip({ ...newTrip, startTime: e.target.value })}
-            className="border rounded p-2"
-          />
-        </div>
-
-        {/* Дата/время прибытия */}
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            type="date"
-            value={newTrip.endDate}
-            onChange={(e) => setNewTrip({ ...newTrip, endDate: e.target.value })}
             className="border rounded p-2"
           />
           <input
@@ -167,20 +147,6 @@ export default function Page() {
             className="border rounded p-2"
           />
         </div>
-
-        <select
-          value={newTrip.status}
-          onChange={(e) =>
-            setNewTrip({ ...newTrip, status: e.target.value as Trip["status"] })
-          }
-          className="border rounded p-2"
-        >
-          <option>Запланировано</option>
-          <option>В пути</option>
-          <option>Завершено</option>
-          <option>Отменено</option>
-        </select>
-
         <button
           onClick={addTrip}
           className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
@@ -189,15 +155,15 @@ export default function Page() {
         </button>
       </div>
 
-      {/* Календарь */}
+      {/* календарь */}
       <Calendar
         localizer={localizer}
         events={trips}
         startAccessor="start"
         endAccessor="end"
-        style={{ height: 520 }}
+        style={{ height: 500 }}
         eventPropGetter={eventStyleGetter}
-        views={["month", "week", "day", "agenda"]}
+        views={["month", "week", "day"]}
       />
     </div>
   );
