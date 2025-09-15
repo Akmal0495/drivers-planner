@@ -174,18 +174,20 @@ export default function Page() {
     });
   };
 
-  // Цвета
+  // Цвета для календаря
   const eventStyleGetter = (event: Trip) => {
     let style: React.CSSProperties = {
-  borderRadius: "8px",
-  padding: "4px",
-  color: "white",
-  border: "none",
-};
-    if (event.status === "Запланировано") style.backgroundColor = "#3B82F6";
+      borderRadius: "8px",
+      padding: "4px",
+      color: "white",
+      border: "none",
+      backgroundColor: "#3B82F6", // дефолт
+    };
+
     if (event.status === "В пути") style.backgroundColor = "#F59E0B";
     if (event.status === "Завершено") style.backgroundColor = "#10B981";
     if (event.status === "Отменено") style.backgroundColor = "#EF4444";
+
     return { style };
   };
 
