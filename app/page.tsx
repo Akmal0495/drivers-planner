@@ -176,12 +176,12 @@ export default function Page() {
 
   // Цвета
   const eventStyleGetter = (event: Trip) => {
-    let style = {
-      borderRadius: "10px",
-      padding: "4px",
-      color: "white",
-      border: "none",
-    };
+    let style: React.CSSProperties = {
+  borderRadius: "8px",
+  padding: "4px",
+  color: "white",
+  border: "none",
+};
     if (event.status === "Запланировано") style.backgroundColor = "#3B82F6";
     if (event.status === "В пути") style.backgroundColor = "#F59E0B";
     if (event.status === "Завершено") style.backgroundColor = "#10B981";
